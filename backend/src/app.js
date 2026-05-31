@@ -1,11 +1,17 @@
 
 import express from "express";
+import cors from "cors";
 
 import cookieParser from "cookie-parser";
 import helmet from "helmet";
 import morgan from "morgan";
 
 const app = express();
+
+app.use(cors({
+    origin: process.env.CORS_ORIGIN,
+    credentials: true
+}));
 
 app.use(helmet());
 app.use(morgan("dev"));
@@ -24,6 +30,10 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
+//Routes
+import userRoutes from "./routes/user.routes.js";
+
+app.use("/api/v1/users", userRoutes);
 
 
 export default app;
