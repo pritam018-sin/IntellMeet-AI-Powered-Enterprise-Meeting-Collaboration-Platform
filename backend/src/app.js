@@ -32,8 +32,9 @@ app.use(limiter);
 
 //Routes
 import userRoutes from "./routes/user.routes.js";
+import meetingRoutes from "./routes/meeting.routes.js";
 
 app.use("/api/v1/users", userRoutes);
-
+app.use("/api/v1/meetings", meetingRoutes);
 
 export default app;
