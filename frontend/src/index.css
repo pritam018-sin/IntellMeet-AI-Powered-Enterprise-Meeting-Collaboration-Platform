@@ -1,1 +1,102 @@
 @import "tailwindcss";
+
+@theme {
+  --color-brand-primary: #6366f1; /* Indigo */
+  --color-brand-secondary: #a855f7; /* Purple */
+  --color-brand-accent: #10b981; /* Emerald Green */
+  --color-dark-bg: #030712; /* Deep Black/Blue */
+  --color-dark-card: #0b0f19; /* Glass Backing */
+  --color-dark-border: rgba(255, 255, 255, 0.08);
+
+  --animate-gradient-shift: gradient-shift 12s ease infinite;
+  --animate-fade-in: fade-in 0.4s ease-out forwards;
+  --animate-slide-up: slide-up 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  --animate-pulse-slow: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+
+  @keyframes gradient-shift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+  }
+  @keyframes fade-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes slide-up {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+}
+
+/* Custom Base Styles */
+html, body {
+  background-color: #030712;
+  color: #f3f4f6;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  overflow-x: hidden;
+  scroll-behavior: smooth;
+  margin: 0;
+  padding: 0;
+}
+
+/* Premium Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #030712;
+}
+::-webkit-scrollbar-thumb {
+  background: #1f2937;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #374151;
+}
+
+/* Glassmorphism Utilities */
+.glass-panel {
+  background: rgba(11, 15, 25, 0.65);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.glass-panel-hover {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.glass-panel-hover:hover {
+  background: rgba(11, 15, 25, 0.85);
+  border-color: rgba(99, 102, 241, 0.25);
+  box-shadow: 0 10px 30px -10px rgba(99, 102, 241, 0.15);
+}
+
+.glass-button {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: all 0.2s ease;
+}
+.glass-button:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.text-gradient {
+  background: linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.text-gradient-emerald {
+  background: linear-gradient(135deg, #10b981 0%, #3b82f6 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Video Frame Pulse for Active Speaker */
+.active-speaker-ring {
+  box-shadow: 0 0 0 3px #10b981, 0 0 20px rgba(16, 185, 129, 0.4);
+}
