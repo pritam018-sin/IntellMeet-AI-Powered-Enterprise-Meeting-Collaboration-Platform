@@ -1,6 +1,6 @@
 import Meeting from "../models/meeting.model.js";
 import Task from "../models/task.model.js";
-import { ApiResponse } from "../utils/ApiResponse.js";
+import { ApiResponse } from "../utils/apiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 
 // @desc    Get dashboard analytics (Meeting stats, task completion rates)
