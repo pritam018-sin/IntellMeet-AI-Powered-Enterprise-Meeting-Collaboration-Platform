@@ -132,12 +132,10 @@ const leaveMeeting = asyncHandler(async (req, res) => {
     throw new ApiError(404, "Meeting not found");
   }
 
-  meeting.participants = meeting.participants.filter(
-    (participant) =>
-      !participant.user.equals(req.user._id)
-  );
-
-  await meeting.save();
+  // We do not remove the participant from the array because they need to retain access to the meeting history, notes, and recordings.
+  // Real-time presence is handled by Socket.IO.
+  
+  // Optionally, we could record a 'leftAt' timestamp here, but for now we just return success.
 
   return res
     .status(200)
@@ -152,6 +150,7 @@ const leaveMeeting = asyncHandler(async (req, res) => {
 
 const endMeeting = asyncHandler(async (req, res) => {
   const { meetingCode } = req.params;
+  const { sharedNotes } = req.body;
 
   const meeting = await Meeting.findOne({ meetingCode: meetingCode.toUpperCase() });
 
@@ -167,6 +166,9 @@ const endMeeting = asyncHandler(async (req, res) => {
   }
 
   meeting.status = "ended";
+  if (sharedNotes !== undefined) {
+    meeting.sharedNotes = sharedNotes;
+  }
 
   await meeting.save();
 
@@ -219,6 +221,35 @@ const deleteMeeting = asyncHandler(async (req, res) => {
   return res.status(200).json(new ApiResponse(200, "Meeting deleted successfully", {}));
 });
 
+import { cloudinaryUploadVideo } from "../utils/cloudinaryService.js";
+
+const uploadRecording = asyncHandler(async (req, res) => {
+  const { meetingCode } = req.params;
+
+  if (!req.file) {
+    throw new ApiError(400, "No video file provided");
+  }
+
+  const meeting = await Meeting.findOne({ meetingCode: meetingCode.toUpperCase() });
+  if (!meeting) {
+    throw new ApiError(404, "Meeting not found");
+  }
+
+  if (!meeting.host.equals(req.user._id)) {
+    throw new ApiError(403, "Only the host can upload the recording");
+  }
+
+  const uploadResponse = await cloudinaryUploadVideo(req.file.path);
+  if (!uploadResponse) {
+    throw new ApiError(500, "Failed to upload recording to Cloudinary");
+  }
+
+  meeting.recordingUrl = uploadResponse.secure_url;
+  await meeting.save();
+
+  return res.status(200).json(new ApiResponse(200, "Recording uploaded successfully", meeting));
+});
+
 export {
   createMeeting,
   joinMeeting,
@@ -226,5 +257,6 @@ export {
   leaveMeeting,
   endMeeting,
   getMeetingById,
-  deleteMeeting
+  deleteMeeting,
+  uploadRecording
 };

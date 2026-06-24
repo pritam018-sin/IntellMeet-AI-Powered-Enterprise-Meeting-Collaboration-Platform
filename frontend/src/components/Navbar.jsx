@@ -29,6 +29,15 @@ const Navbar = () => {
             <Link to="/lobby" className="text-gray-600 dark:text-slate-300 hover:text-red-600 dark:hover:text-red-400 font-medium transition-colors">
               Lobby
             </Link>
+            <Link to="/dashboard" className="text-gray-600 dark:text-slate-300 hover:text-red-600 dark:hover:text-red-400 font-medium transition-colors">
+              Dashboard
+            </Link>
+            <Link to="/projects" className="text-gray-600 dark:text-slate-300 hover:text-red-600 dark:hover:text-red-400 font-medium transition-colors">
+              Projects
+            </Link>
+            <Link to="/analytics" className="text-gray-600 dark:text-slate-300 hover:text-red-600 dark:hover:text-red-400 font-medium transition-colors">
+              Analytics
+            </Link>
           </div>
         )}
       </div>

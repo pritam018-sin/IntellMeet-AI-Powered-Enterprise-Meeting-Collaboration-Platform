@@ -3,7 +3,10 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { useGetMeetingByIdQuery, useDeleteMeetingMutation } from '../redux/api/meetingApi';
 import ReactMarkdown from 'react-markdown';
-import { Calendar, Users, FileText, Bot, Trash2, ArrowLeft, Clock, Copy, ChevronDown, ChevronUp, CheckCircle2 } from 'lucide-react';
+import { Calendar, Users, FileText, Bot, Trash2, ArrowLeft, Clock, Copy, ChevronDown, ChevronUp, CheckCircle2, Video, Download } from 'lucide-react';
+import { jsPDF } from 'jspdf';
+import html2canvas from 'html2canvas-pro';
+import toast from 'react-hot-toast';
 
 const MeetingDetails = () => {
   const { meetingId } = useParams();
@@ -23,9 +26,10 @@ const MeetingDetails = () => {
     if (window.confirm("Are you sure you want to delete this meeting and its summary permanently?")) {
       try {
         await deleteMeeting(meetingId).unwrap();
+        toast.success("Meeting deleted successfully");
         navigate('/');
       } catch (err) {
-        alert(err?.data?.message || "Failed to delete meeting.");
+        toast.error(err?.data?.message || "Failed to delete meeting.");
       }
     }
   };
@@ -34,7 +38,28 @@ const MeetingDetails = () => {
     if (meeting?.summary) {
       navigator.clipboard.writeText(meeting.summary);
       setCopied(true);
+      toast.success("Summary copied to clipboard!");
       setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  const exportToPDF = async () => {
+    const input = document.getElementById('meeting-content');
+    if (!input) return;
+    
+    const toastId = toast.loading('Generating PDF...');
+    try {
+      const canvas = await html2canvas(input, { scale: 2, useCORS: true });
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`IntellMeet_${meeting.meetingCode}.pdf`);
+      toast.success('PDF downloaded successfully!', { id: toastId });
+    } catch (err) {
+      console.error("PDF generation failed", err);
+      toast.error('Failed to generate PDF', { id: toastId });
     }
   };
 
@@ -74,44 +99,56 @@ const MeetingDetails = () => {
             <span>Dashboard</span>
           </Link>
           
-          {isHost && (
+          <div className="flex gap-3">
             <button 
-              onClick={handleDelete}
-              disabled={isDeleting}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 bg-red-50 dark:bg-red-500/10 hover:bg-red-100 dark:hover:bg-red-500/20 rounded-lg transition-colors disabled:opacity-50 border border-red-200 dark:border-transparent"
+              onClick={exportToPDF}
+              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-700 bg-white dark:bg-neutral-800 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-neutral-700 rounded-lg transition-colors border border-slate-200 dark:border-neutral-700 shadow-sm"
             >
-              <Trash2 className="w-4 h-4" />
-              {isDeleting ? 'Deleting...' : 'Delete Meeting'}
+              <Download className="w-4 h-4" />
+              <span className="hidden sm:inline">Export to PDF</span>
             </button>
-          )}
+
+            {isHost && (
+              <button 
+                onClick={handleDelete}
+                disabled={isDeleting}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 bg-red-50 dark:bg-red-500/10 hover:bg-red-100 dark:hover:bg-red-500/20 rounded-lg transition-colors disabled:opacity-50 border border-red-200 dark:border-transparent"
+              >
+                <Trash2 className="w-4 h-4" />
+                {isDeleting ? 'Deleting...' : 'Delete Meeting'}
+              </button>
+            )}
+          </div>
         </div>
 
-        {/* Header Content */}
-        <div className="mb-10">
-          <div className="flex items-center gap-3 mb-2">
-            <span className="px-3 py-1 bg-red-500/20 text-red-600 dark:text-red-400 rounded-full text-xs font-bold uppercase tracking-wider">
-              {meeting.status}
-            </span>
-            <span className="font-mono text-sm text-slate-500 dark:text-slate-400 bg-white/50 dark:bg-white/5 px-2 py-1 rounded border border-slate-200 dark:border-white/10">
-              Code: {meeting.meetingCode}
-            </span>
+        {/* Meeting Content for PDF */}
+        <div id="meeting-content" className="p-4 bg-transparent dark:bg-black">
+          {/* Header Content */}
+          <div className="mb-10">
+            <div className="flex items-center gap-3 mb-2">
+              <span className="px-3 py-1 bg-red-500/20 text-red-600 dark:text-red-400 rounded-full text-xs font-bold uppercase tracking-wider">
+                {meeting.status}
+              </span>
+              <span className="font-mono text-sm text-slate-500 dark:text-slate-400 bg-white/50 dark:bg-white/5 px-2 py-1 rounded border border-slate-200 dark:border-white/10">
+                Code: {meeting.meetingCode}
+              </span>
+            </div>
+            <h1 className="text-4xl md:text-5xl font-extrabold mb-4">{meeting.title}</h1>
+            <div className="flex flex-wrap items-center gap-6 text-sm text-slate-600 dark:text-slate-400">
+              <div className="flex items-center gap-2">
+                <Calendar className="w-4 h-4" />
+                {meetingDate}
+              </div>
+              <div className="flex items-center gap-2">
+                <Clock className="w-4 h-4" />
+                {meetingTime}
+              </div>
+              <div className="flex items-center gap-2">
+                <Users className="w-4 h-4" />
+                {meeting.participants.length} Participants
+              </div>
+            </div>
           </div>
-          <h1 className="text-4xl md:text-5xl font-extrabold mb-4">{meeting.title}</h1>
-          <div className="flex flex-wrap items-center gap-6 text-sm text-slate-600 dark:text-slate-400">
-            <div className="flex items-center gap-2">
-              <Calendar className="w-4 h-4" />
-              {meetingDate}
-            </div>
-            <div className="flex items-center gap-2">
-              <Clock className="w-4 h-4" />
-              {meetingTime}
-            </div>
-            <div className="flex items-center gap-2">
-              <Users className="w-4 h-4" />
-              {meeting.participants.length} Participants
-            </div>
-          </div>
-        </div>
 
         {/* Main Content Layout */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
@@ -177,6 +214,36 @@ const MeetingDetails = () => {
               )}
             </div>
 
+            {/* Shared Notes Card */}
+            {meeting.sharedNotes && (
+              <div className="bg-white dark:bg-white/5 rounded-2xl p-6 md:p-8 border border-slate-200 dark:border-white/10 shadow-sm dark:shadow-none">
+                <h2 className="text-xl font-bold flex items-center gap-2 mb-6 pb-4 border-b border-slate-100 dark:border-white/10">
+                  <FileText className="w-6 h-6 text-slate-500" />
+                  Meeting Notes
+                </h2>
+                <div className="prose prose-slate dark:prose-invert max-w-none whitespace-pre-wrap font-sans">
+                  {meeting.sharedNotes}
+                </div>
+              </div>
+            )}
+
+            {/* Recording Card */}
+            {meeting.recordingUrl && (
+              <div className="bg-white dark:bg-white/5 rounded-2xl p-6 md:p-8 border border-slate-200 dark:border-white/10 shadow-sm dark:shadow-none">
+                <h2 className="text-xl font-bold flex items-center gap-2 mb-6 pb-4 border-b border-slate-100 dark:border-white/10 text-red-600 dark:text-red-400">
+                  <Video className="w-6 h-6" />
+                  Recording
+                </h2>
+                <div className="rounded-xl overflow-hidden bg-black aspect-video flex items-center justify-center">
+                  <video 
+                    src={meeting.recordingUrl} 
+                    controls 
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+              </div>
+            )}
+
           </div>
 
           {/* Right Column: Participants */}
@@ -211,7 +278,7 @@ const MeetingDetails = () => {
               </div>
             </div>
           </div>
-
+        </div>
         </div>
       </div>
     </div>

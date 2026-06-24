@@ -57,6 +57,23 @@ const meetingSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+
+    recordingUrl: {
+      type: String,
+      default: "",
+    },
+
+    actionItems: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Task",
+      }
+    ],
+
+    sharedNotes: {
+      type: String,
+      default: "",
+    },
   },
   {
     timestamps: true,

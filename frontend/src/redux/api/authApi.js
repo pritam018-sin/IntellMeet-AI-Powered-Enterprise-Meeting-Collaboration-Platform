@@ -1,9 +1,10 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import { logout, setCredentials } from '../slices/authSlice';
+import { API_BASE_URL } from '../../constants';
 
 // 1. Create a base query instance
 const baseQuery = fetchBaseQuery({
-  baseUrl: 'http://localhost:5000/api/v1', // Adjusted backend URL
+  baseUrl: API_BASE_URL, 
   prepareHeaders: (headers, { getState }) => {
     const token = getState().auth.token;
     if (token) {
@@ -17,8 +18,8 @@ const baseQuery = fetchBaseQuery({
 export const baseQueryWithReauth = async (args, api, extraOptions) => {
   let result = await baseQuery(args, api, extraOptions);
 
-  // If we get a 401 Unauthorized error
-  if (result.error && result.error.status === 401) {
+  // If we get a 401 Unauthorized or 402 Payment Required (backend uses 402 for invalid token)
+  if (result.error && (result.error.status === 401 || result.error.status === 402)) {
     const refreshToken = api.getState().auth.refreshToken;
     
     if (refreshToken) {

@@ -3,8 +3,10 @@ import { X } from 'lucide-react';
 import ChatPanel from '../panels/ChatPanel';
 import ParticipantsPanel from '../panels/ParticipantsPanel';
 import SettingsPanel from '../panels/SettingsPanel';
+import NotesPanel from '../panels/NotesPanel';
+import TasksPanel from '../panels/TasksPanel';
 
-const Sidebar = ({ mode, onClose, messages, onSendMessage, participants, isHost, onRemoveParticipant, onMuteParticipant, onMuteAll, onEndMeeting, canRecord, onToggleRecordingPermission }) => {
+const Sidebar = ({ mode, onClose, messages, onSendMessage, participants, isHost, onRemoveParticipant, onMuteParticipant, onMuteAll, onEndMeeting, canRecord, onToggleRecordingPermission, notes, onNotesChange, tasks, onAddTask, projects, onCreateProject }) => {
   return (
     <div className="flex flex-col h-full w-full bg-black/80 backdrop-blur-md shadow-2xl border-l border-red-950/50">
       {/* Sidebar Header */}
@@ -26,6 +28,8 @@ const Sidebar = ({ mode, onClose, messages, onSendMessage, participants, isHost,
         {mode === 'chat' && <ChatPanel messages={messages} onSendMessage={onSendMessage} />}
         {mode === 'participants' && <ParticipantsPanel participants={participants} isHost={isHost} onRemoveParticipant={onRemoveParticipant} onMuteParticipant={onMuteParticipant} canRecord={canRecord} onToggleRecordingPermission={onToggleRecordingPermission} />}
         {mode === 'settings' && <SettingsPanel isHost={isHost} onEndMeeting={onEndMeeting} onMuteAll={onMuteAll} canRecord={canRecord} onToggleRecordingPermission={onToggleRecordingPermission} />}
+        {mode === 'notes' && <NotesPanel notes={notes} onNotesChange={onNotesChange} />}
+        {mode === 'tasks' && <TasksPanel tasks={tasks} onAddTask={onAddTask} projects={projects} onCreateProject={onCreateProject} />}
       </div>
     </div>
   );

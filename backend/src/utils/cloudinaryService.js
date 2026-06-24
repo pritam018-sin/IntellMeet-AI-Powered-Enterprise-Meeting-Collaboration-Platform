@@ -27,4 +27,24 @@ const cloudinaryUpload =  async (localFilePath) => {
     }
 }
 
-export {cloudinaryUpload};
+const cloudinaryUploadVideo = async (localFilePath) => {
+    try {
+        if (!localFilePath) throw new Error("No file path provided");
+
+        const response = await cloudinary.uploader.upload(localFilePath, {
+            resource_type: "video",
+            folder: "intellmeet_recordings",
+        });
+
+        fs.unlinkSync(localFilePath);
+        return response;
+    } catch (error) {
+        console.error("Cloudinary Upload Error:", error);
+        if (fs.existsSync(localFilePath)) {
+            fs.unlinkSync(localFilePath); 
+        }
+        return null;
+    }
+}
+
+export {cloudinaryUpload, cloudinaryUploadVideo};

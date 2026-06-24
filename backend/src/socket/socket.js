@@ -82,6 +82,14 @@ const initializeSocket = (io) => {
       socket.to(room).emit("room:caption", { caption });
     });
 
+    socket.on("room:note:update", ({ room, content }) => {
+      socket.to(room).emit("room:note:update", { content });
+    });
+
+    socket.on("room:task:create", ({ room, task }) => {
+      socket.to(room).emit("room:task:create", { task });
+    });
+
     socket.on("disconnect", () => {
       console.log(
         "User Disconnected:",

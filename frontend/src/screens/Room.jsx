@@ -2,10 +2,12 @@ import React, { useEffect, useCallback, useState, useRef } from "react";
 import { useSocket } from "../context/SocketProvider.jsx";
 import PeerService from "../service/peer.js";
 import { useParams, useNavigate } from "react-router-dom";
-import { useLeaveMeetingMutation, useEndMeetingMutation, useGetMyMeetingsQuery, useJoinMeetingMutation } from "../redux/api/meetingApi";
+import { useLeaveMeetingMutation, useEndMeetingMutation, useGetMyMeetingsQuery, useJoinMeetingMutation, useUploadRecordingMutation } from "../redux/api/meetingApi";
+import { useCreateTaskMutation, useGetMyWorkspacesQuery, useGetProjectsByWorkspaceQuery, useCreateProjectMutation, useCreateWorkspaceMutation } from "../redux/api/projectApi";
 import { useSelector } from "react-redux";
 import { useGenerateSummaryMutation } from "../redux/api/aiApi";
 import { useTranscription } from "../features/ai/useTranscription";
+import toast from 'react-hot-toast';
 import MeetingLayout from "../components/meeting/layout/MeetingLayout";
 import VideoGrid from "../components/meeting/layout/VideoGrid";
 import Sidebar from "../components/meeting/layout/Sidebar";
@@ -57,8 +59,10 @@ const RoomPage = () => {
     const [isFullscreen, setIsFullscreen] = useState(false);
 
     // UI Layout State
-    const [sidebarMode, setSidebarMode] = useState(null); // 'chat', 'participants', null
+    const [sidebarMode, setSidebarMode] = useState(null); // 'chat', 'participants', 'notes', 'tasks', null
     const [messages, setMessages] = useState([]);
+    const [notes, setNotes] = useState('');
+    const [tasks, setTasks] = useState([]);
 
     // Auto-hide controls State
     const [showControls, setShowControls] = useState(true);
@@ -111,6 +115,17 @@ const RoomPage = () => {
     const [endMeeting, { isLoading: isEnding }] = useEndMeetingMutation();
     const [joinMeeting, { isLoading: isJoiningAPI }] = useJoinMeetingMutation();
     const [generateSummary] = useGenerateSummaryMutation();
+    const [uploadRecording] = useUploadRecordingMutation();
+    const [createTask] = useCreateTaskMutation();
+    const [createProject] = useCreateProjectMutation();
+    const [createWorkspace] = useCreateWorkspaceMutation();
+
+    const { data: workspacesResponse } = useGetMyWorkspacesQuery();
+    const workspaces = workspacesResponse?.data || [];
+    const defaultWorkspaceId = workspaces.length > 0 ? workspaces[0]._id : null;
+    
+    const { data: projectsResponse } = useGetProjectsByWorkspaceQuery(defaultWorkspaceId, { skip: !defaultWorkspaceId });
+    const projects = projectsResponse?.data || [];
 
     // Meeting Role Checks
     const { data: meetingsResponse } = useGetMyMeetingsQuery(undefined, { skip: !user });
@@ -118,10 +133,12 @@ const RoomPage = () => {
     const isHost = currentMeeting?.host?._id === user?._id || currentMeeting?.host === user?._id;
 
     // Toast logic (simplified for the new layout)
-    const showToast = useCallback((msg) => {
-        // You could integrate a real toast library here like react-hot-toast. 
-        // For now we'll just log or use browser alert for critical things, or rely on UI indicators.
-        console.log("TOAST:", msg);
+    const showToast = useCallback((msg, type = "success") => {
+        if (type === "error") {
+            toast.error(msg);
+        } else {
+            toast.success(msg);
+        }
     }, []);
 
     // Host Controls
@@ -201,7 +218,7 @@ const RoomPage = () => {
         };
 
         peer.ontrack = (event) => {
-            console.log("GOT REMOTE TRACK from", socketId);
+
             setRemoteStreams(prev => {
                 const existing = prev.find(p => p.socketId === socketId);
                 if (existing) {
@@ -226,7 +243,7 @@ const RoomPage = () => {
     }, [socket]);
 
     const handleUserJoined = useCallback(async ({ email, id }) => {
-        console.log(`User ${email} joined the room with socket ID: ${id}`);
+
         const peer = createPeerConnection(id, email);
         const offer = await peer.createOffer();
         await peer.setLocalDescription(offer);
@@ -239,7 +256,7 @@ const RoomPage = () => {
     }, [createPeerConnection, socket, user, activeScreenShareUser, roomId]);
 
     const handleIncomingCall = useCallback(async ({ from, offer, email }) => {
-        console.log(`Incoming call from ${from}`);
+
         const peer = createPeerConnection(from, email);
         await peer.setRemoteDescription(new RTCSessionDescription(offer));
         const ans = await peer.createAnswer();
@@ -248,7 +265,7 @@ const RoomPage = () => {
     }, [createPeerConnection, socket]);
 
     const handleCallAccepted = useCallback(async ({ from, ans }) => {
-        console.log(`Call accepted from ${from}`);
+
         const peer = peersRef.current.get(from);
         if (peer) {
             await peer.setRemoteDescription(new RTCSessionDescription(ans));
@@ -284,7 +301,7 @@ const RoomPage = () => {
     }, []);
 
     const handleUserLeft = useCallback(({ socketId }) => {
-        console.log("User left:", socketId);
+
         const peer = peersRef.current.get(socketId);
         if (peer) {
             peer.close();
@@ -307,6 +324,9 @@ const RoomPage = () => {
 
     const handleLeaveMeeting = useCallback(async (forced = false) => {
         try {
+            if (isRecording && mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+                mediaRecorderRef.current.stop();
+            }
             if (!forced) await leaveMeeting(roomId).unwrap();
             socket.emit("room:leave", { meetingCode: roomId });
             if (myStreamRef.current) myStreamRef.current.getTracks().forEach(t => t.stop());
@@ -330,7 +350,7 @@ const RoomPage = () => {
         socket.on("user-left", handleUserLeft);
 
         socket.on("meeting:ended", () => {
-            alert("The host has ended the meeting.");
+            toast.error("The host has ended the meeting.");
             handleLeaveMeeting(true);
         });
 
@@ -351,7 +371,7 @@ const RoomPage = () => {
         });
 
         socket.on("room:kicked", () => {
-            alert("You have been removed from the meeting by the host.");
+            toast.error("You have been removed from the meeting by the host.");
             handleLeaveMeeting(true);
         });
 
@@ -378,6 +398,14 @@ const RoomPage = () => {
             captionTimeoutRef.current = setTimeout(() => setLatestCaption(null), 3000);
         });
 
+        socket.on("room:note:update", ({ content }) => {
+            setNotes(content);
+        });
+
+        socket.on("room:task:create", ({ task }) => {
+            setTasks(prev => [...prev, task]);
+        });
+
         return () => {
             socket.off("user:joined");
             socket.off("incoming:call");
@@ -395,6 +423,8 @@ const RoomPage = () => {
             socket.off("user:raise-hand");
             socket.off("room:permissions:update");
             socket.off("room:caption");
+            socket.off("room:note:update");
+            socket.off("room:task:create");
         };
     }, [socket, isJoined, micOn, handleUserJoined, handleIncomingCall, handleCallAccepted, handleNegoNeedIncomming, handleNegoNeedFinal, handleIncomingIceCandidate, handleUserLeft, showToast, toggleMic, handleLeaveMeeting]);
 
@@ -410,7 +440,7 @@ const RoomPage = () => {
         } catch (err) {
             console.error("Failed to join meeting:", err);
             const msg = err?.data?.message || "Failed to join meeting. It may have ended.";
-            alert(msg);
+            toast.error(msg);
             navigate('/');
         }
     }, [socket, user, roomId, joinMeeting, navigate]);
@@ -498,7 +528,7 @@ const RoomPage = () => {
         }
 
         if (!isHost && !canRecord) {
-            alert("Recording is disabled by the host.");
+            showToast("Recording is disabled by the host.", "error");
             return;
         }
 
@@ -522,10 +552,18 @@ const RoomPage = () => {
                 a.download = `IntellMeet_Recording_${new Date().toISOString().slice(0, 10)}.webm`;
                 a.click();
                 window.URL.revokeObjectURL(url);
+                
+                showToast("Uploading recording to cloud...");
+                const formData = new FormData();
+                formData.append('video', blob, `recording_${roomId}.webm`);
+                uploadRecording({ meetingCode: roomId, formData })
+                    .unwrap()
+                    .then(() => showToast("Recording saved to Dashboard!"))
+                    .catch(err => console.error("Cloud upload failed", err));
+
                 recordedChunksRef.current = [];
                 setIsRecording(false);
                 stream.getTracks().forEach(t => t.stop());
-                showToast("Recording saved!");
             };
 
             mediaRecorderRef.current.start();
@@ -546,6 +584,10 @@ const RoomPage = () => {
     const handleEndMeeting = async () => {
         if (!isHost) return;
 
+        if (isRecording && mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+            mediaRecorderRef.current.stop();
+        }
+
         // 1. Instantly kill local media tracks (Camera/Mic)
         if (myStreamRef.current) myStreamRef.current.getTracks().forEach(t => t.stop());
         if (myStream) myStream.getTracks().forEach(t => t.stop());
@@ -565,7 +607,7 @@ const RoomPage = () => {
         
         Promise.allSettled([
             generateSummary({ meetingCode: roomId, transcript: finalTranscript }).unwrap(),
-            endMeeting(roomId).unwrap()
+            endMeeting({ meetingCode: roomId, sharedNotes: notes }).unwrap()
         ]).then((results) => {
             const [summaryResult, endResult] = results;
             if (summaryResult.status === 'rejected') console.error("AI Summary Error:", summaryResult.reason);
@@ -591,6 +633,46 @@ const RoomPage = () => {
         setCanRecord(newPermission);
         socket.emit("room:permissions:update", { room: roomId, permissions: { canRecord: newPermission } });
     }, [canRecord, roomId, socket]);
+
+    const handleNotesChange = (content) => {
+        setNotes(content);
+        socket.emit("room:note:update", { room: roomId, content });
+    };
+
+    const handleAddTask = async (title, projectId) => {
+        try {
+            const res = await createTask({ title, projectId, meetingId: currentMeeting?._id }).unwrap();
+            setTasks(prev => [...prev, res.data]);
+            socket.emit("room:task:create", { room: roomId, task: res.data });
+        } catch (err) {
+            console.error("Failed to create task", err);
+        }
+    };
+
+    const handleCreateProject = async (name) => {
+        let workspaceId = defaultWorkspaceId;
+        
+        if (!workspaceId) {
+            try {
+                const wsRes = await createWorkspace({ name: "My Workspace" }).unwrap();
+                workspaceId = wsRes.data._id;
+            } catch (err) {
+                console.error("Failed to auto-create workspace", err);
+                showToast("Failed to initialize a workspace for the project.");
+                return null;
+            }
+        }
+
+        try {
+            const res = await createProject({ name, description: "Created during meeting", workspaceId }).unwrap();
+            showToast("Project created successfully!");
+            return res.data;
+        } catch (err) {
+            console.error("Failed to create project", err);
+            showToast("Failed to create project");
+            return null;
+        }
+    };
 
     // ---------------------------------------------------------
     // RENDER: LOBBY
@@ -676,7 +758,7 @@ const RoomPage = () => {
     return (
         <MeetingLayout
             isSidebarOpen={sidebarMode !== null}
-            sidebarContent={sidebarMode ? <Sidebar mode={sidebarMode} onClose={() => setSidebarMode(null)} messages={messages} onSendMessage={handleSendMessage} participants={allParticipants} isHost={isHost} onRemoveParticipant={handleRemoveParticipant} onMuteParticipant={handleMuteParticipant} onMuteAll={handleMuteAll} onEndMeeting={handleEndMeeting} canRecord={canRecord} onToggleRecordingPermission={handleToggleRecordingPermission} /> : null}
+            sidebarContent={sidebarMode ? <Sidebar mode={sidebarMode} onClose={() => setSidebarMode(null)} messages={messages} onSendMessage={handleSendMessage} participants={allParticipants} isHost={isHost} onRemoveParticipant={handleRemoveParticipant} onMuteParticipant={handleMuteParticipant} onMuteAll={handleMuteAll} onEndMeeting={handleEndMeeting} canRecord={canRecord} onToggleRecordingPermission={handleToggleRecordingPermission} notes={notes} onNotesChange={handleNotesChange} tasks={tasks} onAddTask={handleAddTask} projects={projects} onCreateProject={handleCreateProject} /> : null}
         >
             <div className="flex-1 flex flex-col bg-transparent relative overflow-hidden">
                 {isScreenShareLayout ? (

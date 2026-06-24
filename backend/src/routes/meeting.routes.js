@@ -9,7 +9,9 @@ import {
   endMeeting,
   getMeetingById,
   deleteMeeting,
+  uploadRecording,
 } from "../controllers/meeting.controller.js";
+import { upload } from "../middleware/multer.middleware.js";
 
 const router = Router();
 
@@ -35,6 +37,12 @@ router.route("/end/:meetingCode").patch(
 router.route("/:meetingId")
   .get(verifyJWT, getMeetingById)
   .delete(verifyJWT, deleteMeeting);
+
+router.route("/upload-recording/:meetingCode").post(
+  verifyJWT,
+  upload.single("video"),
+  uploadRecording
+);
 
 export default router;
 

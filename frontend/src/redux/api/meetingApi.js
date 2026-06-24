@@ -38,9 +38,10 @@ export const meetingApi = createApi({
       invalidatesTags: ['Meeting'],
     }),
     endMeeting: builder.mutation({
-      query: (meetingCode) => ({
+      query: ({ meetingCode, sharedNotes }) => ({
         url: `/meetings/end/${meetingCode}`,
         method: 'PATCH',
+        body: { sharedNotes },
       }),
       invalidatesTags: ['Meeting'],
     }),
@@ -58,6 +59,14 @@ export const meetingApi = createApi({
       }),
       invalidatesTags: ['Meeting'],
     }),
+    uploadRecording: builder.mutation({
+      query: ({ meetingCode, formData }) => ({
+        url: `/meetings/upload-recording/${meetingCode}`,
+        method: 'POST',
+        body: formData,
+      }),
+      invalidatesTags: ['Meeting'],
+    }),
   }),
 });
 
@@ -69,4 +78,5 @@ export const {
   useEndMeetingMutation,
   useGetMeetingByIdQuery,
   useDeleteMeetingMutation,
+  useUploadRecordingMutation,
 } = meetingApi;
