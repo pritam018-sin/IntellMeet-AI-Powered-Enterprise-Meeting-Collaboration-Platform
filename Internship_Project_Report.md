@@ -1,6 +1,5 @@
 # IntellMeet - AI-Powered Enterprise Meeting & Collaboration Platform
-
-![IntellMeet Banner](https://via.placeholder.com/1000x300/0f172a/ef4444?text=IntellMeet+-+AI+Powered+Video+Conferencing)
+**Internship Project Report**
 
 ## 1. Executive Summary
 IntellMeet is a next-generation, browser-based video conferencing platform designed to streamline remote collaboration. Built as an internship capstone project, the platform integrates real-time WebRTC mesh networking with cutting-edge Google Gemini AI to provide live transcriptions, automated intelligent meeting summaries, and robust participant management. 
@@ -111,6 +110,3 @@ graph TD
 | **Week 4** | Advanced Media & Features | Screen sharing integration, local recording, Host moderation controls (Mute All, Kick), participant sidebar. |
 | **Week 5** | AI & Transcription | Web Speech API integration for live captions, accumulating transcript data, integrating Google Generative AI SDK (`gemini-flash-latest`). |
 | **Week 6** | Polish & Dashboard | Building the Meeting History Dashboard, Markdown rendering for AI summaries, light/dark mode fixes, mobile responsiveness, final bug squashing. |
-
----
-*Developed as an Internship Capstone Project.*

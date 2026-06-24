@@ -7,6 +7,8 @@ import {
   getMyMeetings,
   leaveMeeting,
   endMeeting,
+  getMeetingById,
+  deleteMeeting,
 } from "../controllers/meeting.controller.js";
 
 const router = Router();
@@ -25,10 +27,14 @@ router.route("/leave").post(
   leaveMeeting
 );
 
-router.route("/end/:meetingId").patch(
+router.route("/end/:meetingCode").patch(
   verifyJWT,
   endMeeting
 );
+
+router.route("/:meetingId")
+  .get(verifyJWT, getMeetingById)
+  .delete(verifyJWT, deleteMeeting);
 
 export default router;
 

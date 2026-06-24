@@ -25,16 +25,27 @@ import rateLimit from "express-rate-limit";
 
 // Rate Limit
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, 
-  max: 100,
+    windowMs: 15 * 60 * 1000,
+    max: 100,
 });
 app.use(limiter);
 
 //Routes
 import userRoutes from "./routes/user.routes.js";
 import meetingRoutes from "./routes/meeting.routes.js";
+import aiRoutes from "./routes/ai.routes.js";
 
 app.use("/api/v1/users", userRoutes);
 app.use("/api/v1/meetings", meetingRoutes);
+app.use("/api/v1/ai", aiRoutes);
+
+app.use((err, req, res, next) => {
+    const statusCode = err.statusCode || 500;
+    res.status(statusCode).json({
+        success: false,
+        message: err.message || "Internal Server Error",
+        errors: err.error || [],
+    });
+});
 
 export default app;

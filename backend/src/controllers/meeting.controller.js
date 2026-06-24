@@ -80,16 +80,13 @@ const joinMeeting = asyncHandler(async (req, res) => {
     participant.user.equals(req.user._id)
   );
 
-  if (alreadyJoined) {
-    throw new ApiError(400, "You have already joined this meeting");
+  if (!alreadyJoined) {
+    meeting.participants.push({
+      user: req.user._id,
+      role: "member",
+    });
+    await meeting.save();
   }
-
-  meeting.participants.push({
-    user: req.user._id,
-    role: "member",
-  });
-
-  await meeting.save();
 
   return res
     .status(200)
@@ -154,9 +151,9 @@ const leaveMeeting = asyncHandler(async (req, res) => {
 });
 
 const endMeeting = asyncHandler(async (req, res) => {
-  const { meetingId } = req.params;
+  const { meetingCode } = req.params;
 
-  const meeting = await Meeting.findById(meetingId);
+  const meeting = await Meeting.findOne({ meetingCode: meetingCode.toUpperCase() });
 
   if (!meeting) {
     throw new ApiError(404, "Meeting not found");
@@ -184,10 +181,50 @@ const endMeeting = asyncHandler(async (req, res) => {
     );
 });
 
+const getMeetingById = asyncHandler(async (req, res) => {
+  const { meetingId } = req.params;
+  const meeting = await Meeting.findById(meetingId)
+    .populate("host", "name email avatar")
+    .populate("participants.user", "name email avatar");
+
+  if (!meeting) {
+    throw new ApiError(404, "Meeting not found");
+  }
+
+  // Ensure only host or participants can view it
+  const isHost = meeting.host._id.equals(req.user._id);
+  const isParticipant = meeting.participants.some((p) => p.user._id.equals(req.user._id));
+
+  if (!isHost && !isParticipant) {
+    throw new ApiError(403, "Not authorized to view this meeting details");
+  }
+
+  return res.status(200).json(new ApiResponse(200, "Meeting fetched successfully", meeting));
+});
+
+const deleteMeeting = asyncHandler(async (req, res) => {
+  const { meetingId } = req.params;
+  const meeting = await Meeting.findById(meetingId);
+
+  if (!meeting) {
+    throw new ApiError(404, "Meeting not found");
+  }
+
+  if (!meeting.host.equals(req.user._id)) {
+    throw new ApiError(403, "Only the host can delete this meeting");
+  }
+
+  await meeting.deleteOne();
+
+  return res.status(200).json(new ApiResponse(200, "Meeting deleted successfully", {}));
+});
+
 export {
   createMeeting,
   joinMeeting,
   getMyMeetings,
   leaveMeeting,
   endMeeting,
+  getMeetingById,
+  deleteMeeting
 };
