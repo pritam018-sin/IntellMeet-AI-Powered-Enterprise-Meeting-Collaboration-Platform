@@ -1,1 +1,8 @@
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-primary: #dc2626; /* red-600 */
+  --color-primary-hover: #b91c1c; /* red-700 */
+}
