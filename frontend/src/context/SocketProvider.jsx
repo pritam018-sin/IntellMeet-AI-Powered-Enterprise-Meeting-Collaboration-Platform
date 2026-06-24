@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useMemo } from 'react'
 import { io } from 'socket.io-client'
+import { SOCKET_URL } from '../constants'
 
 const SocketContext = createContext(null)
 
@@ -7,7 +8,7 @@ export const useSocket = () => {
     return useContext(SocketContext)
 }
 
-const socket = io(import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000', {
+const socket = io(SOCKET_URL, {
     withCredentials: true,
 })
 

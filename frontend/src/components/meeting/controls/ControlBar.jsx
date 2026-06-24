@@ -1,5 +1,5 @@
 import React from 'react';
-import { Mic, MicOff, Video, VideoOff, MonitorUp, MessageSquare, Users, Settings, Maximize, Minimize, Phone, CircleDot } from 'lucide-react';
+import { Mic, MicOff, Video, VideoOff, MonitorUp, MessageSquare, Users, Settings, Maximize, Minimize, Phone, CircleDot, FileText, CheckSquare } from 'lucide-react';
 
 const ControlButton = ({ icon: Icon, label, onClick, isActive = false, danger = false }) => {
   return (
@@ -73,6 +73,18 @@ const ControlBar = ({ onToggleMic, onToggleCam, onToggleScreenShare, onToggleRec
           label="Chat" 
           onClick={() => onToggleSidebar('chat')} 
           isActive={state.sidebarMode === 'chat'}
+        />
+        <ControlButton 
+          icon={FileText} 
+          label="Notes" 
+          onClick={() => onToggleSidebar('notes')} 
+          isActive={state.sidebarMode === 'notes'}
+        />
+        <ControlButton 
+          icon={CheckSquare} 
+          label="Tasks" 
+          onClick={() => onToggleSidebar('tasks')} 
+          isActive={state.sidebarMode === 'tasks'}
         />
         {isHost && (
           <ControlButton 
